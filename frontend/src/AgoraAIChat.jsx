@@ -253,6 +253,7 @@ const AgoraAIChat = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-black text-gray-200 flex flex-col font-sans">
+      <div className="bg-red-500 h-10 w-full"></div>
       {/* Header */}
       <div className="bg-white/5 border-b border-white/10 p-4 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
