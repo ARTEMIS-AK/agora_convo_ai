@@ -66,7 +66,7 @@ const AgoraAIChat = () => {
       agoraClient.current = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       
       // Create local audio track
-      localAudioTrack.current = await AgoraRTC.createMicrophoneAudioTrack();
+      localAudioTrack.current = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
       
       return true;
     } catch (error) {
