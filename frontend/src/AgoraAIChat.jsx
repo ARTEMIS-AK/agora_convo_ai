@@ -19,7 +19,12 @@ const AgoraAIChat = () => {
     channelName: 'test-channel',
     rtcToken: '',
     openaiApiKey: '',
-    systemMessage: 'You are a helpful AI assistant. Keep responses concise and conversational.',
+    systemMessage: `You are a helpful AI assistant. Your goal is to provide assistance in a natural, human-like conversational style. To achieve this, please follow these guidelines:
+- Speak in shorter, well-punctuated sentences. This helps ensure your responses are clear and easy to follow.
+- Use pauses, like '...' or a short break in your speech, to create a more natural rhythm and give the listener time to process information. For example, when moving between topics, take a brief pause.
+- Avoid rushing. Speak at a calm, measured pace.
+- Structure your answers clearly. If you are presenting multiple points, introduce them one by one, with a slight pause in between.
+- Keep your tone friendly and engaging.`,
     greetingMessage: 'Hello! How can I help you today?',
     voiceName: 'alloy' // OpenAI TTS voice
   });
@@ -61,7 +66,7 @@ const AgoraAIChat = () => {
       agoraClient.current = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       
       // Create local audio track
-      localAudioTrack.current = await AgoraRTC.createMicrophoneAudioTrack();
+      localAudioTrack.current = await AgoraRTC.createMicrophoneAudioTrack({ AEC: true, ANS: true });
       
       return true;
     } catch (error) {
@@ -248,6 +253,7 @@ const AgoraAIChat = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-black text-gray-200 flex flex-col font-sans">
+      <div className="bg-red-500 h-10 w-full"></div>
       {/* Header */}
       <div className="bg-white/5 border-b border-white/10 p-4 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-6xl mx-auto flex justify-between items-center">

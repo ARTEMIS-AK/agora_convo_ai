@@ -48,6 +48,9 @@ app.post('/api/start-agent', async (req, res) => {
             temperature: 0.7
           }
         },
+        turn_detection: {
+          silence_duration_ms: 1000
+        },
         asr: {
           language: "en-US"
         },
@@ -56,6 +59,8 @@ app.post('/api/start-agent', async (req, res) => {
           params: {
             api_key: config.openaiApiKey,
             voice: config.voiceName,
+            speed: 0.9,
+            instructions: "Please use a natural, friendly tone with a moderate pace.",
             model: "tts-1"
           }
         }
