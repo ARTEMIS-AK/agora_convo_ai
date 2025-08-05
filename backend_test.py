@@ -152,15 +152,15 @@ class AgoraAIBackendTester:
             
             # Check for key audio optimization features
             optimizations = {
-                "Enhanced TTS (tts-1-hd)": '"tts-1-hd"' in backend_code,
-                "24kHz Sample Rate": '"sample_rate": 24000' in backend_code,
-                "Optimized Turn Detection": '"silence_duration_ms": 800' in backend_code,
-                "Audio Processing (AEC/ANS)": '"enable_aec": true' in backend_code and '"enable_ans": true' in backend_code,
-                "AGC Disabled": '"enable_agc": false' in backend_code,
-                "48kHz Audio Sample Rate": '"sample_rate": 48000' in backend_code,
-                "Voice Activity Detection": '"enable_voice_activity_detection": true' in backend_code,
-                "RTM Support": '"enable_rtm": true' in backend_code,
-                "Continuous ASR": '"enable_continuous_recognition": true' in backend_code
+                "Enhanced TTS (tts-1-hd)": 'tts-1-hd' in backend_code,
+                "24kHz Sample Rate": 'sample_rate: 24000' in backend_code,
+                "Optimized Turn Detection": 'silence_duration_ms: 800' in backend_code,
+                "Audio Processing (AEC/ANS)": 'enable_aec: true' in backend_code and 'enable_ans: true' in backend_code,
+                "AGC Disabled": 'enable_agc: false' in backend_code,
+                "48kHz Audio Sample Rate": 'sample_rate: 48000' in backend_code,
+                "Voice Activity Detection": 'enable_voice_activity_detection: true' in backend_code,
+                "RTM Support": 'enable_rtm: true' in backend_code,
+                "Continuous ASR": 'enable_continuous_recognition: true' in backend_code
             }
             
             all_present = True
