@@ -57,11 +57,12 @@ app.post('/api/start-agent', async (req, res) => {
             temperature: 0.7
           }
         },
-        // Optimized turn detection for better conversation flow
+        // Optimized turn detection for better conversation flow and less interruption
         turn_detection: {
-          silence_duration_ms: 800, // Reduced for more responsive conversation
-          max_silence_duration_ms: 3000,
-          min_voice_duration_ms: 300
+          silence_duration_ms: 1200, // Slightly longer to prevent cutting off speech
+          max_silence_duration_ms: 4000, // Allow longer pauses
+          min_voice_duration_ms: 500, // Ensure minimum speech length
+          sensitivity: "low" // Less sensitive to prevent premature interruption
         },
         // Enhanced ASR settings
         asr: {
