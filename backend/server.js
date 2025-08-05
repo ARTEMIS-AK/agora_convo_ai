@@ -76,10 +76,10 @@ app.post('/api/start-agent', async (req, res) => {
           params: {
             api_key: config.openaiApiKey,
             voice: config.voiceName,
-            speed: 0.95, // Slightly increased for natural flow
-            instructions: "Please use a natural, friendly tone with clear pronunciation and appropriate pauses between sentences.",
-            model: "tts-1-hd", // Higher quality model
-            response_format: "pcm",
+            speed: 1.0, // Normal speed for clarity
+            instructions: "Speak clearly with natural pauses. Avoid speaking too fast and ensure complete sentences.",
+            model: "tts-1-hd", // Higher quality model for better audio
+            response_format: "wav", // WAV format for better compatibility
             sample_rate: 24000
           }
         },
