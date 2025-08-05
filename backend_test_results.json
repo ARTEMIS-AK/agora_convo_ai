@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-05T11:40:56.231484",
+  "timestamp": "2025-08-05T11:41:16.320409",
   "total_tests": 5,
   "passed_tests": 4,
   "success_rate": 0.8,
@@ -8,31 +8,31 @@
       "name": "Health Check",
       "success": true,
       "details": "Status: OK",
-      "timestamp": "2025-08-05T11:40:55.233100"
+      "timestamp": "2025-08-05T11:41:15.971532"
     },
     {
       "name": "Start Agent Validation",
       "success": true,
       "details": "Correctly validates missing credentials",
-      "timestamp": "2025-08-05T11:40:55.236072"
+      "timestamp": "2025-08-05T11:41:15.974938"
     },
     {
       "name": "Start Agent Audio Config",
       "success": false,
-      "details": "Unexpected status code: 404",
-      "timestamp": "2025-08-05T11:40:56.227523"
+      "details": "Unexpected error: {'error': 'no Route matched with those values', 'details': {'message': 'no Route matched with those values'}}",
+      "timestamp": "2025-08-05T11:41:16.317154"
     },
     {
       "name": "Stop Agent Validation",
       "success": true,
       "details": "Correctly validates missing parameters",
-      "timestamp": "2025-08-05T11:40:56.231125"
+      "timestamp": "2025-08-05T11:41:16.320048"
     },
     {
       "name": "Audio Optimizations in Backend",
       "success": true,
       "details": "Found 9/9 optimizations",
-      "timestamp": "2025-08-05T11:40:56.231397"
+      "timestamp": "2025-08-05T11:41:16.320290"
     }
   ]
 }
