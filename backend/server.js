@@ -24,6 +24,15 @@ app.post('/api/start-agent', async (req, res) => {
     
     const requestBody = {
       name: `agent_${Date.now()}`,
+      // Enable advanced features for optimal audio experience
+      advanced_features: {
+        enable_rtm: true
+      },
+      parameters: {
+        data_channel: "rtm",
+        enable_metrics: true,
+        enable_error_message: true
+      },
       properties: {
         channel: config.channelName,
         token: config.rtcToken,
@@ -48,21 +57,41 @@ app.post('/api/start-agent', async (req, res) => {
             temperature: 0.7
           }
         },
+        // Optimized turn detection for better conversation flow
         turn_detection: {
-          silence_duration_ms: 1000
+          silence_duration_ms: 800, // Reduced for more responsive conversation
+          max_silence_duration_ms: 3000,
+          min_voice_duration_ms: 300
         },
+        // Enhanced ASR settings
         asr: {
-          language: "en-US"
+          language: "en-US",
+          enable_continuous_recognition: true,
+          enable_partial_results: true,
+          sample_rate: 16000
         },
+        // Optimized TTS settings for conversational AI
         tts: {
           vendor: "openai",
           params: {
             api_key: config.openaiApiKey,
             voice: config.voiceName,
-            speed: 0.9,
-            instructions: "Please use a natural, friendly tone with a moderate pace.",
-            model: "tts-1"
+            speed: 0.95, // Slightly increased for natural flow
+            instructions: "Please use a natural, friendly tone with clear pronunciation and appropriate pauses between sentences.",
+            model: "tts-1-hd", // Higher quality model
+            response_format: "pcm",
+            sample_rate: 24000
           }
+        },
+        // Audio processing optimizations
+        audio: {
+          enable_aec: true,
+          enable_ans: true,
+          enable_agc: false, // Disabled for better voice quality
+          sample_rate: 48000,
+          channels: 1,
+          enable_voice_activity_detection: true,
+          vad_sensitivity: "medium"
         }
       }
     };
