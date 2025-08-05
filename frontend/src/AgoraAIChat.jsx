@@ -10,7 +10,6 @@ const AgoraAIChat = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [status, setStatus] = useState('');
   const [messages, setMessages] = useState([]);
-  const [audioRouting, setAudioRouting] = useState('default');
 
   // Configuration state
   const [config, setConfig] = useState({
@@ -46,163 +45,123 @@ const AgoraAIChat = () => {
   useEffect(() => {
     if (isConnected && agoraClient.current) {
       const handleUserPublished = async (user, mediaType) => {
-        await agoraClient.current.subscribe(user, mediaType);
-        if (mediaType === "audio") {
-          user.audioTrack.play();
-          addMessage('agent', 'AI Agent is speaking...');
+        try {
+          await agoraClient.current.subscribe(user, mediaType);
+          if (mediaType === "audio") {
+            // Enhanced audio playback with better quality settings
+            user.audioTrack.play();
+            // Set volume to ensure clear audio
+            user.audioTrack.setVolume(100);
+            addMessage('agent', 'AI Agent is speaking...');
+          }
+        } catch (error) {
+          console.error('Error subscribing to user:', error);
         }
       };
 
       const handleUserUnpublished = async (user, mediaType) => {
-        if (mediaType === "audio") {
-          console.log('AI agent stopped publishing audio');
+        try {
+          if (mediaType === "audio") {
+            console.log('AI agent stopped publishing audio');
+            await agoraClient.current.unsubscribe(user, mediaType);
+          }
+        } catch (error) {
+          console.error('Error unsubscribing from user:', error);
         }
       };
 
-      const handleAudioRouteChanged = (routing) => {
-        console.log('Audio route changed:', routing);
-        setAudioRouting(routing);
-        // Re-apply optimal audio settings when route changes
-        setOptimalAudioParameters(routing);
+      const handleUserLeft = (user) => {
+        console.log('User left:', user.uid);
+        addMessage('system', 'AI Agent left the conversation');
+      };
+
+      const handleConnectionStateChanged = (curState, revState) => {
+        console.log('Connection state changed:', curState, 'from:', revState);
+        if (curState === 'DISCONNECTED') {
+          setStatus('Connection lost - attempting to reconnect...');
+        } else if (curState === 'CONNECTED') {
+          setStatus('Connected - Enhanced Audio Active');
+        }
       };
 
       agoraClient.current.on("user-published", handleUserPublished);
       agoraClient.current.on("user-unpublished", handleUserUnpublished);
-      
-      // Note: Audio route change handling for web is different from mobile
-      // We'll implement it through media device change detection
-      navigator.mediaDevices?.addEventListener('devicechange', () => {
-        console.log('Media devices changed');
-        setOptimalAudioParameters(audioRouting);
-      });
+      agoraClient.current.on("user-left", handleUserLeft);
+      agoraClient.current.on("connection-state-changed", handleConnectionStateChanged);
 
       return () => {
-        agoraClient.current?.off("user-published", handleUserPublished);
-        agoraClient.current?.off("user-unpublished", handleUserUnpublished);
-        navigator.mediaDevices?.removeEventListener('devicechange', () => {});
+        if (agoraClient.current) {
+          agoraClient.current.off("user-published", handleUserPublished);
+          agoraClient.current.off("user-unpublished", handleUserUnpublished);
+          agoraClient.current.off("user-left", handleUserLeft);
+          agoraClient.current.off("connection-state-changed", handleConnectionStateChanged);
+        }
       };
     }
-  }, [isConnected, audioRouting]);
+  }, [isConnected]);
 
-  // Set optimal audio parameters based on Agora's recommendations
-  const setOptimalAudioParameters = (routing = 'default') => {
-    if (!agoraClient.current) return;
-
-    console.log('Setting optimal audio parameters for routing:', routing);
-    
-    try {
-      // Configure audio processing parameters for conversational AI
-      agoraClient.current.setParameters('{"che.audio.aec.split_srate_for_48k":16000}');
-      agoraClient.current.setParameters('{"che.audio.sf.enabled":true}');
-      agoraClient.current.setParameters('{"che.audio.sf.stftType":6}');
-      agoraClient.current.setParameters('{"che.audio.sf.ainlpLowLatencyFlag":1}');
-      agoraClient.current.setParameters('{"che.audio.sf.ainsLowLatencyFlag":1}');
-      agoraClient.current.setParameters('{"che.audio.sf.procChainMode":1}');
-      agoraClient.current.setParameters('{"che.audio.sf.nlpDynamicMode":1}');
-
-      // Set algorithm route based on audio output type
-      if (routing === 'headset' || routing === 'earpiece' || routing === 'bluetooth') {
-        agoraClient.current.setParameters('{"che.audio.sf.nlpAlgRoute":0}');
-      } else {
-        agoraClient.current.setParameters('{"che.audio.sf.nlpAlgRoute":1}');
-      }
-      
-      agoraClient.current.setParameters('{"che.audio.sf.ainlpModelPref":10}');
-      agoraClient.current.setParameters('{"che.audio.sf.nsngAlgRoute":12}');
-      agoraClient.current.setParameters('{"che.audio.sf.ainsModelPref":10}');
-      agoraClient.current.setParameters('{"che.audio.sf.nsngPredefAgg":11}');
-      
-      // Disable AGC for better voice quality in conversational AI
-      agoraClient.current.setParameters('{"che.audio.agc.enable":false}');
-      
-      // Additional parameters for audio stability and quality
-      agoraClient.current.setParameters('{"che.audio.playout.buffer_length_ms":200}');
-      agoraClient.current.setParameters('{"che.audio.record.buffer_length_ms":200}');
-      
-      console.log('Audio parameters configured successfully');
-    } catch (error) {
-      console.error('Error setting audio parameters:', error);
-    }
-  };
-
-  // Initialize Agora RTC with optimal settings
+  // Initialize Agora RTC with Web-compatible optimizations
   const initializeAgora = async () => {
     try {
-      // Create client with optimal configuration for conversational AI
+      // Clean up any existing client first
+      if (agoraClient.current) {
+        try {
+          await agoraClient.current.leave();
+        } catch (e) {
+          console.log('Previous client cleanup:', e.message);
+        }
+        agoraClient.current = null;
+      }
+
+      if (localAudioTrack.current) {
+        localAudioTrack.current.close();
+        localAudioTrack.current = null;
+      }
+
+      // Create client with Web-optimized configuration
       agoraClient.current = AgoraRTC.createClient({ 
         mode: "rtc", 
-        codec: "vp8"
+        codec: "vp8",
+        // Enable advanced features supported in Web SDK
+        enableAudioVolumeIndicator: true
       });
 
-      // Try to load AI audio enhancement extensions
-      try {
-        await AgoraRTC.loadExtension("agora-extension-ai-denoiser");
-        console.log('AI denoiser extension loaded');
-      } catch (error) {
-        console.warn('AI denoiser extension not available:', error.message);
-      }
-
-      // Set audio scenario for conversational AI (if supported)
-      try {
-        agoraClient.current.setAudioScenario('ai-voice-chat');
-      } catch (error) {
-        console.warn('AI voice chat scenario not supported, using default');
-      }
+      console.log('Creating audio track with Web-optimized settings...');
       
-      // Create local audio track with enhanced settings for conversational AI
+      // Create local audio track with Web-compatible enhanced settings
       localAudioTrack.current = await AgoraRTC.createMicrophoneAudioTrack({
-        // Enhanced noise suppression and echo cancellation
-        AEC: true,
-        ANS: true,
-        AGC: false, // Disable AGC for better voice quality
+        // Web SDK supported audio enhancements
+        AEC: true,  // Acoustic Echo Cancellation
+        ANS: true,  // Automatic Noise Suppression  
+        AGC: true,  // Keep AGC enabled for Web (different from mobile)
         
-        // Audio quality settings
+        // Enhanced encoder config for better quality
         encoderConfig: {
-          sampleRate: 48000,
-          stereo: false,
-          bitrate: 128,
+          sampleRate: 48000,    // High quality sample rate
+          stereo: false,        // Mono for voice chat
+          bitrate: 128,         // High bitrate for clarity
         },
         
-        // Enable noise suppression extension if available
-        extensionId: "agora-extension-ai-denoiser",
-        extensionConfig: {
-          nsLevel: 2, // Moderate noise suppression
-          nsng: true, // Enable next-generation noise suppression
-        }
+        // Microphone constraints for better audio capture
+        microphoneId: 'default',
+        facingMode: 'user'
       });
 
-      // Apply optimal audio parameters after initialization
-      setOptimalAudioParameters(audioRouting);
+      console.log('Audio track created successfully with enhanced settings');
       
       return true;
     } catch (error) {
       console.error('Failed to initialize Agora:', error);
       if (error.code === 'PERMISSION_DENIED') {
         setStatus('Microphone permission was denied. Please allow access to continue.');
-      } else if (error.message.includes('extension')) {
-        console.warn('Audio extension not available, continuing with basic setup');
-        // Fallback to basic audio track
-        try {
-          localAudioTrack.current = await AgoraRTC.createMicrophoneAudioTrack({
-            AEC: true,
-            ANS: true,
-            AGC: false,
-            encoderConfig: {
-              sampleRate: 48000,
-              stereo: false,
-              bitrate: 128,
-            }
-          });
-          setOptimalAudioParameters(audioRouting);
-          return true;
-        } catch (fallbackError) {
-          setStatus(`Failed to initialize audio: ${fallbackError.message}`);
-          return false;
-        }
+      } else if (error.name === 'NotAllowedError') {
+        setStatus('Microphone access denied. Please check your browser permissions.');
+      } else if (error.name === 'NotFoundError') {
+        setStatus('No microphone found. Please check your audio devices.');
       } else {
-        setStatus(`Failed to initialize Agora SDK: ${error.message}`);
-        return false;
+        setStatus(`Failed to initialize audio: ${error.message}`);
       }
+      return false;
     }
   };
 
@@ -218,7 +177,6 @@ const AgoraAIChat = () => {
     setStatus('Requesting microphone permission...');
 
     // Request microphone permission and initialize Agora *before* making network calls.
-    // This ensures the permission prompt is triggered by a direct user action.
     const agoraInitialized = await initializeAgora();
     if (!agoraInitialized) {
       setIsLoading(false);
@@ -257,17 +215,19 @@ const AgoraAIChat = () => {
       updateConfig('rtcToken', data.rtcToken); // Use token from backend
       setStatus('Agent started successfully! Joining channel...');
       
-      // Join the Agora channel now that the agent is ready and permissions are granted.
-      await joinChannel(config.rtcToken || null);
+      // Join the Agora channel with the token from the response
+      await joinChannel(data.rtcToken || config.rtcToken || null);
       setIsConnected(true);
-      setStatus('Connected! You can now talk to the AI agent.');
+      setStatus('Connected - Enhanced Audio Active');
       addMessage('system', 'AI Agent joined the conversation. Say hello!');
 
     } catch (error) {
       console.error('Error starting agent:', error);
       setStatus(`Failed to start agent: ${error.message}`);
       
-      // If it's a network error, show more helpful message
+      // Clean up on error
+      await cleanupConnection();
+      
       if (error.message.includes('Failed to fetch')) {
         setStatus('Connection error: Make sure the backend server is running on port 3001');
       }
@@ -276,56 +236,89 @@ const AgoraAIChat = () => {
     }
   };
 
-  // Join Agora channel
+  // Join Agora channel with proper error handling
   const joinChannel = async (token) => {
     try {
-      if (!agoraClient.current) return;
+      if (!agoraClient.current || !localAudioTrack.current) {
+        throw new Error('Agora client or audio track not initialized');
+      }
 
+      console.log('Joining channel with enhanced audio settings...');
+
+      // Join channel with proper uid (let Agora assign)
       await agoraClient.current.join(
         config.appId,
         config.channelName,
         token,
-        null
+        null  // Let Agora assign UID
       );
 
-      // Publish local audio track
-      await agoraClient.current.publish([localAudioTrack.current]);
+      console.log('Channel joined successfully, publishing audio track...');
 
-      // Re-apply audio parameters after joining
-      setTimeout(() => {
-        setOptimalAudioParameters(audioRouting);
-      }, 1000);
+      // Publish local audio track with enhanced settings
+      await agoraClient.current.publish([localAudioTrack.current]);
+      
+      console.log('Audio track published successfully');
 
     } catch (error) {
       console.error('Error joining channel:', error);
       setStatus(`Failed to join channel: ${error.message}`);
+      throw error;
     }
   };
 
+  // Enhanced cleanup function
   const cleanupConnection = async () => {
-    if (agoraClient.current) {
-      await agoraClient.current.leave();
+    console.log('Starting connection cleanup...');
+    
+    try {
+      // Stop and unpublish audio track first
+      if (localAudioTrack.current) {
+        try {
+          localAudioTrack.current.close();
+        } catch (e) {
+          console.log('Audio track cleanup:', e.message);
+        }
+        localAudioTrack.current = null;
+      }
+
+      // Leave channel and cleanup client
+      if (agoraClient.current) {
+        try {
+          await agoraClient.current.leave();
+          console.log('Left Agora channel successfully');
+        } catch (e) {
+          console.log('Channel leave cleanup:', e.message);
+        }
+        agoraClient.current = null;
+      }
+
+    } catch (error) {
+      console.error('Error during cleanup:', error);
     }
-    if (localAudioTrack.current) {
-      localAudioTrack.current.close();
-      localAudioTrack.current = null;
-    }
-    agoraClient.current = null;
+
+    // Reset state
     setIsConnected(false);
     setAgentId(null);
     setStatus('Disconnected');
+    
+    console.log('Connection cleanup completed');
   };
 
-  // Stop AI Agent
+  // Stop AI Agent with improved error handling
   const stopAgent = async () => {
-    if (!agentId) return;
+    if (!agentId) {
+      // If no agent ID, just cleanup local connection
+      await cleanupConnection();
+      addMessage('system', 'Connection ended');
+      return;
+    }
 
     setIsLoading(true);
     setStatus('Stopping AI agent...');
 
-    let agentStopError = null;
     try {
-      // Call our backend server instead of Agora API directly
+      // Call backend to stop agent
       const response = await fetch('http://localhost:3001/api/stop-agent', {
         method: 'POST',
         headers: {
@@ -341,41 +334,34 @@ const AgoraAIChat = () => {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        // If the agent is already gone, it's not a critical failure.
-        if (response.status === 404 && data.reason === 'TaskNotFound') {
-          console.log('Agent already stopped on Agora side, proceeding with cleanup.');
-        } else {
-          agentStopError = new Error(data.error || data.detail || `HTTP error! status: ${response.status}`);
+        // If agent is already gone (404), it's not critical
+        if (response.status !== 404) {
+          console.warn('Agent stop error:', data);
         }
       }
-    } catch (error) {
-      agentStopError = error;
-    }
 
-    try {
-      await cleanupConnection();
-      addMessage('system', 'AI Agent left the conversation');
-      if (agentStopError) {
-        throw agentStopError; // re-throw after cleanup
-      }
     } catch (error) {
       console.error('Error stopping agent:', error);
-      setStatus(`Failed to stop agent: ${error.message}`);
-      
-      if (error.message.includes('Failed to fetch')) {
-        setStatus('Connection error: Make sure the backend server is running on port 3001');
-      }
-    } finally {
-      setIsLoading(false);
+      // Don't throw error, continue with cleanup
     }
+
+    // Always cleanup local connection regardless of backend response
+    await cleanupConnection();
+    addMessage('system', 'AI Agent left the conversation');
+    setIsLoading(false);
   };
 
-  // Toggle mute
+  // Toggle mute with proper error handling
   const toggleMute = async () => {
     if (localAudioTrack.current) {
-      const newMutedState = !isMuted;
-      await localAudioTrack.current.setMuted(newMutedState);
-      setIsMuted(newMutedState);
+      try {
+        const newMutedState = !isMuted;
+        await localAudioTrack.current.setMuted(newMutedState);
+        setIsMuted(newMutedState);
+        setStatus(newMutedState ? 'Microphone muted' : 'Microphone active - Enhanced Audio Active');
+      } catch (error) {
+        console.error('Error toggling mute:', error);
+      }
     }
   };
 
@@ -394,6 +380,13 @@ const AgoraAIChat = () => {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      cleanupConnection();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-black text-gray-200 flex flex-col font-sans">
       {/* Header */}
@@ -409,7 +402,7 @@ const AgoraAIChat = () => {
           </div>
           <div className="flex items-center space-x-3">
             <div className="text-xs text-gray-400 hidden md:block">
-              Audio: {audioRouting}
+              Web Optimized
             </div>
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -427,18 +420,69 @@ const AgoraAIChat = () => {
           <div className="max-w-6xl mx-auto">
             <h2 className="text-xl font-semibold mb-6 text-center text-gray-300">Configuration</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <input type="text" placeholder="App ID *" value={config.appId} onChange={(e) => updateConfig('appId', e.target.value)} className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" />
-              <input type="text" placeholder="Customer ID *" value={config.customerId} onChange={(e) => updateConfig('customerId', e.target.value)} className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" />
-              <input type="password" placeholder="Customer Secret *" value={config.customerSecret} onChange={(e) => updateConfig('customerSecret', e.target.value)} className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" />
-              <input type="text" placeholder="Channel Name" value={config.channelName} onChange={(e) => updateConfig('channelName', e.target.value)} className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" />
-              <input type="text" placeholder="RTC Token (optional)" value={config.rtcToken} onChange={(e) => updateConfig('rtcToken', e.target.value)} className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" />
-              <input type="password" placeholder="OpenAI API Key *" value={config.openaiApiKey} onChange={(e) => updateConfig('openaiApiKey', e.target.value)} className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" />
+              <input 
+                type="text" 
+                placeholder="App ID *" 
+                value={config.appId || ''} 
+                onChange={(e) => updateConfig('appId', e.target.value)} 
+                className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" 
+              />
+              <input 
+                type="text" 
+                placeholder="Customer ID *" 
+                value={config.customerId || ''} 
+                onChange={(e) => updateConfig('customerId', e.target.value)} 
+                className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" 
+              />
+              <input 
+                type="password" 
+                placeholder="Customer Secret *" 
+                value={config.customerSecret || ''} 
+                onChange={(e) => updateConfig('customerSecret', e.target.value)} 
+                className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" 
+              />
+              <input 
+                type="text" 
+                placeholder="Channel Name" 
+                value={config.channelName || ''} 
+                onChange={(e) => updateConfig('channelName', e.target.value)} 
+                className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" 
+              />
+              <input 
+                type="text" 
+                placeholder="RTC Token (optional)" 
+                value={config.rtcToken || ''} 
+                onChange={(e) => updateConfig('rtcToken', e.target.value)} 
+                className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" 
+              />
+              <input 
+                type="password" 
+                placeholder="OpenAI API Key *" 
+                value={config.openaiApiKey || ''} 
+                onChange={(e) => updateConfig('openaiApiKey', e.target.value)} 
+                className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" 
+              />
             </div>
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <textarea placeholder="System Message" value={config.systemMessage} onChange={(e) => updateConfig('systemMessage', e.target.value)} className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none h-24 resize-none transition-all placeholder-gray-500" />
+              <textarea 
+                placeholder="System Message" 
+                value={config.systemMessage || ''} 
+                onChange={(e) => updateConfig('systemMessage', e.target.value)} 
+                className="p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none h-24 resize-none transition-all placeholder-gray-500" 
+              />
               <div className="space-y-4">
-                <input type="text" placeholder="Greeting Message" value={config.greetingMessage} onChange={(e) => updateConfig('greetingMessage', e.target.value)} className="w-full p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" />
-                <select value={config.voiceName} onChange={(e) => updateConfig('voiceName', e.target.value)} className="w-full p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all appearance-none" >
+                <input 
+                  type="text" 
+                  placeholder="Greeting Message" 
+                  value={config.greetingMessage || ''} 
+                  onChange={(e) => updateConfig('greetingMessage', e.target.value)} 
+                  className="w-full p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all placeholder-gray-500" 
+                />
+                <select 
+                  value={config.voiceName || 'alloy'} 
+                  onChange={(e) => updateConfig('voiceName', e.target.value)} 
+                  className="w-full p-3 bg-gray-900/50 border border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none transition-all appearance-none" 
+                >
                   <option className="bg-gray-800" value="alloy">Alloy</option>
                   <option className="bg-gray-800" value="echo">Echo</option>
                   <option className="bg-gray-800" value="fable">Fable</option>
@@ -464,9 +508,9 @@ const AgoraAIChat = () => {
                   <div className="p-4 bg-white/5 rounded-full mb-6">
                     <MessageSquare className="h-16 w-16 text-green-400 opacity-70" />
                   </div>
-                  <h3 className="text-2xl font-light text-gray-300">Welcome to Steve AI</h3>
+                  <h3 className="text-2xl font-light text-gray-300">Welcome to Conversational AI</h3>
                   <p className="text-md mt-2">Configure your settings and start a conversation.</p>
-                  <p className="text-sm mt-2 text-green-400">✨ Enhanced with AI Audio Optimization</p>
+                  <p className="text-sm mt-2 text-green-400">🎙️ Web-Optimized Audio Quality</p>
                 </div>
               ) : (
                 messages.map((message) => (
