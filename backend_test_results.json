@@ -1,38 +1,38 @@
 {
-  "timestamp": "2025-08-05T11:41:16.320409",
+  "timestamp": "2025-08-05T11:41:30.836341",
   "total_tests": 5,
-  "passed_tests": 4,
-  "success_rate": 0.8,
+  "passed_tests": 5,
+  "success_rate": 1.0,
   "results": [
     {
       "name": "Health Check",
       "success": true,
       "details": "Status: OK",
-      "timestamp": "2025-08-05T11:41:15.971532"
+      "timestamp": "2025-08-05T11:41:30.558290"
     },
     {
       "name": "Start Agent Validation",
       "success": true,
       "details": "Correctly validates missing credentials",
-      "timestamp": "2025-08-05T11:41:15.974938"
+      "timestamp": "2025-08-05T11:41:30.561012"
     },
     {
       "name": "Start Agent Audio Config",
-      "success": false,
-      "details": "Unexpected error: {'error': 'no Route matched with those values', 'details': {'message': 'no Route matched with those values'}}",
-      "timestamp": "2025-08-05T11:41:16.317154"
+      "success": true,
+      "details": "Backend correctly forwards request to Agora API",
+      "timestamp": "2025-08-05T11:41:30.832603"
     },
     {
       "name": "Stop Agent Validation",
       "success": true,
       "details": "Correctly validates missing parameters",
-      "timestamp": "2025-08-05T11:41:16.320048"
+      "timestamp": "2025-08-05T11:41:30.835963"
     },
     {
       "name": "Audio Optimizations in Backend",
       "success": true,
       "details": "Found 9/9 optimizations",
-      "timestamp": "2025-08-05T11:41:16.320290"
+      "timestamp": "2025-08-05T11:41:30.836239"
     }
   ]
 }
