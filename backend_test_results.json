@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-08-05T11:40:32.878457",
+  "total_tests": 5,
+  "passed_tests": 3,
+  "success_rate": 0.6,
+  "results": [
+    {
+      "name": "Health Check",
+      "success": true,
+      "details": "Status: OK",
+      "timestamp": "2025-08-05T11:40:32.009435"
+    },
+    {
+      "name": "Start Agent Validation",
+      "success": true,
+      "details": "Correctly validates missing credentials",
+      "timestamp": "2025-08-05T11:40:32.020926"
+    },
+    {
+      "name": "Start Agent Audio Config",
+      "success": false,
+      "details": "Unexpected status code: 404",
+      "timestamp": "2025-08-05T11:40:32.874758"
+    },
+    {
+      "name": "Stop Agent Validation",
+      "success": true,
+      "details": "Correctly validates missing parameters",
+      "timestamp": "2025-08-05T11:40:32.878080"
+    },
+    {
+      "name": "Audio Optimizations in Backend",
+      "success": false,
+      "details": "Found 1/9 optimizations",
+      "timestamp": "2025-08-05T11:40:32.878347"
+    }
+  ]
+}
