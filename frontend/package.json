@@ -11,6 +11,8 @@
     "tailwind-init": "tailwindcss init -p"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.14.4",
+    "agora-extension-ai-denoiser": "^1.1.0",
     "agora-rtc-sdk-ng": "^4.24.0",
     "lucide-react": "^0.535.0",
     "react": "^19.1.0",
@@ -22,11 +24,13 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
-    "tailwindcss": "^4.1.11",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.3",
     "vite": "^7.0.4"
   }
 }

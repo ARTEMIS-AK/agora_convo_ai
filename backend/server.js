@@ -26,7 +26,7 @@ app.post('/api/start-agent', async (req, res) => {
       name: `agent_${Date.now()}`,
       properties: {
         channel: config.channelName,
-        token: config.rtcToken || undefined,
+        token: config.rtcToken,
         agent_rtc_uid: "0",
         remote_rtc_uids: ["*"],
         enable_string_uid: false,
@@ -126,13 +126,15 @@ app.post('/api/stop-agent', async (req, res) => {
     const url = `https://api.agora.io/api/conversational-ai-agent/v2/projects/${appId}/agents/${agentId}/leave`;
     
     console.log('Stopping agent:', agentId);
+    console.log('Stop URL:', url);
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${credentials}`,
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
     });
 
     const responseText = await response.text();
