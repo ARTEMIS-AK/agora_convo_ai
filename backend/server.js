@@ -46,7 +46,12 @@ app.post('/api/start-agent', async (req, res) => {
           system_messages: [
             {
               role: "system",
-              content: config.systemMessage
+              content: `${config.systemMessage}
+              Additional speaking instructions:
+              - Add natural pauses between different points or topics using commas and periods
+              - Maintain a consistent speaking pace throughout the response
+              - Complete each point or thought before moving to the next
+              - Use proper punctuation to create natural speech patterns`
             }
           ],
           greeting_message: config.greetingMessage,
@@ -59,7 +64,7 @@ app.post('/api/start-agent', async (req, res) => {
         },
         // Optimized turn detection for better conversation flow and less interruption
         turn_detection: {
-          silence_duration_ms: 1200, // Slightly longer to prevent cutting off speech
+          silence_duration_ms: 800, // Slightly longer to prevent cutting off speech
           max_silence_duration_ms: 4000, // Allow longer pauses
           min_voice_duration_ms: 500, // Ensure minimum speech length
           sensitivity: "low" // Less sensitive to prevent premature interruption
@@ -77,11 +82,12 @@ app.post('/api/start-agent', async (req, res) => {
           params: {
             api_key: config.openaiApiKey,
             voice: config.voiceName,
-            speed: 1.0, // Normal speed for clarity
-            instructions: "Speak clearly with natural pauses. Avoid speaking too fast and ensure complete sentences.",
-            model: "tts-1-hd", // Higher quality model for better audio
-            response_format: "wav", // WAV format for better compatibility
-            sample_rate: 24000
+            speed: 0.95, // Slightly slower
+            instructions: "Speak with clear pauses between sentences. Maintain consistent volume and pace. Complete each thought fully before moving to the next point.",
+            model: "tts-1", // Higher quality model for better audio
+            response_format: "mp3", // WAV format for better compatibility
+            sample_rate: 16000,
+          
           }
         },
         // Audio processing optimizations
